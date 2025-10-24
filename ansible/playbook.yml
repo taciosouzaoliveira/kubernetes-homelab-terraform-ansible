@@ -1,0 +1,164 @@
+---
+- name: Preparar todos os nós
+  hosts: k8s_cluster
+  become: yes
+  tasks:
+    - name: Desabilitar swap
+      shell: swapoff -a
+      
+    - name: Remover swap do fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '.*swap.*'
+        state: absent
+
+    - name: Carregar módulos do kernel
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+
+    - name: Aplicar módulos
+      shell: |
+        modprobe overlay
+        modprobe br_netfilter
+
+    - name: Configurar sysctl
+      copy:
+        dest: /etc/sysctl.d/k8s.conf
+        content: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward                 = 1
+
+    - name: Aplicar sysctl
+      shell: sysctl --system
+
+    - name: Instalar dependências
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+
+    - name: Adicionar chave GPG do Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Adicionar repositório Docker
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Instalar containerd
+      apt:
+        name: containerd.io
+        state: present
+        update_cache: yes
+
+    - name: Criar diretório de config do containerd
+      file:
+        path: /etc/containerd
+        state: directory
+
+    - name: Configurar containerd
+      shell: |
+        containerd config default > /etc/containerd/config.toml
+        sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+    - name: Reiniciar containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+
+    - name: Adicionar chave GPG do Kubernetes
+      apt_key:
+        url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+        state: present
+        keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Adicionar repositório Kubernetes
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"
+        state: present
+        filename: kubernetes
+
+    - name: Instalar kubelet, kubeadm e kubectl
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: yes
+
+    - name: Marcar pacotes para não atualizar
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+- name: Inicializar Control Plane
+  hosts: controlplane
+  become: yes
+  tasks:
+    - name: Verificar se já está inicializado
+      stat:
+        path: /etc/kubernetes/admin.conf
+      register: k8s_initialized
+
+    - name: Inicializar cluster Kubernetes
+      shell: kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address={{ ansible_default_ipv4.address }}
+      when: not k8s_initialized.stat.exists
+      register: kubeadm_init
+
+    - name: Criar diretório .kube para ubuntu
+      file:
+        path: /home/ubuntu/.kube
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Copiar admin.conf para ubuntu
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: yes
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Instalar Flannel CNI
+      become_user: ubuntu
+      shell: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+      when: not k8s_initialized.stat.exists
+
+    - name: Obter comando de join
+      shell: kubeadm token create --print-join-command
+      register: join_command
+
+    - name: Salvar comando de join
+      set_fact:
+        k8s_join_command: "{{ join_command.stdout }}"
+
+- name: Adicionar Workers ao Cluster
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Verificar se já está no cluster
+      stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: worker_joined
+
+    - name: Executar comando de join
+      shell: "{{ hostvars[groups['controlplane'][0]]['k8s_join_command'] }}"
+      when: not worker_joined.stat.exists

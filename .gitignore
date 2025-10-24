@@ -1,0 +1,11 @@
+# Arquivos de estado e lock do Terraform (nunca devem ir para o Git)
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# Inventário gerado automaticamente pelo Terraform
+ansible/inventory.ini
+
+# Arquivos temporários do sistema
+.DS_Store
