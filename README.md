@@ -2,6 +2,10 @@
 
 Cluster Kubernetes com 1 control plane e 2 workers provisionado com Terraform e configurado com Ansible.
 
+<p>
+  <img src="Terraform cluster.png" alt="Terraform Cluster" width="500"/>
+</p>
+
 ## Informações do Cluster
 
 - **Control Plane**: 10.17.3.142 (hostname: controlplane)
