@@ -5,7 +5,7 @@
   tasks:
     - name: Desabilitar swap
       shell: swapoff -a
-      
+
     - name: Remover swap do fstab
       lineinfile:
         path: /etc/fstab

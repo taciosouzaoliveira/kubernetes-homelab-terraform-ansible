@@ -3,7 +3,7 @@
 Cluster Kubernetes com 1 control plane e 2 workers provisionado com Terraform e configurado com Ansible.
 
 <p>
-  <img src="Terraform cluster.png" alt="Terraform Cluster" width="500"/>
+  <img src="terraform-cluster.png" alt="Terraform Cluster" width="500"/>
 </p>
 
 ## Informações do Cluster
