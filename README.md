@@ -126,5 +126,4 @@ kubectl exec -it <pod-name> -- /bin/bash
 ## Credenciais
 
 - **Usuário SSH**: ubuntu
-- **Senha SSH**: ubuntu
-- **Chave SSH**: Configurada no cloud-init.yaml
+- **Autenticação**: somente chave SSH (login por senha desativado). A chave pública vem de `~/.ssh/id_rsa.pub`; para usar outra, rode `terraform apply -var ssh_public_key_path=~/.ssh/minha_chave.pub`.

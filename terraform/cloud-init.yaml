@@ -9,13 +9,10 @@ users:
     groups: users, admin, sudo
     shell: /bin/bash
     ssh_authorized_keys:
-      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDN4sk4LQyT93LyvVfBYaGNqS/qfbP+jJLQc4e5YNo8OGYC6bht84ImiJfBKizufSpYobjg3kgN5ULiCj8NEaDd0l/fF3Z5IaFgrX1Ci4qg/1atTYe3Yx8oNrU9rheGOAW7VOIAYa2cqtHctxdW6KYgRNdcjz/+gkZKm0+yGSuiDWQU1AMQGLf5QiwYcoeBbwXl8AEFqkbXsk6AB+OSqo1JCdOu/F8pGyFQBKvm5gc2cFosH42FNxRWwwfICba5oPaNlX51b6GYgazu9k9DWch3hVUStlqBa5euSbYWhNIh6eG9xaEgpefkfo0lfDhO5t3KvIsx4lMRQZyMATOK2a0TXTGT4i5DeVVdCLeyGa4YzrmnCQw0WvlNF7GdCVLvuLTmXjEhKNyDr/9h+rxljv+JLyKyN67aCXEdxe1Sfe8HXDSLnhLCLXMfxhVwTtjxkUAYFpsDbQT0cyEzHq+YlK25OubkVyAYF/lBlDd2BBTZdooAwK5ujcGe2SJ10V4XiBrvph82+9gxIlk5UAxTrOD1GFN1L0m3IkI+8UkqrqQBfxtcZQANaDAL9i5asBmC7rrabMULw4V97wEViDp0AxPCX7HVAUV+hJxZ2QuffWEMIUeCjQFslMMBlTSGq3nY+T5PedE/h+NqqpPLV3LnZ/lIbLZGvpGT73RoobVE4pWCeQ== tacio@debian
+      - ${ssh_public_key}
 
-password: ubuntu
-chpasswd:
-  expire: False
-
-ssh_pwauth: True
+# Acesso só por chave SSH: sem senha e sem login por senha
+ssh_pwauth: false
 
 package_update: true
 package_upgrade: false

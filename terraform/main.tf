@@ -35,7 +35,7 @@ resource "libvirt_volume" "ubuntu_base" {
 resource "libvirt_cloudinit_disk" "controlplane_init" {
   name      = "controlplane-init.iso"
   pool      = "default"
-  user_data = templatefile("${path.module}/cloud-init.yaml", { hostname = "controlplane" })
+  user_data = templatefile("${path.module}/cloud-init.yaml", { hostname = "controlplane", ssh_public_key = trimspace(file(pathexpand(var.ssh_public_key_path))) })
 }
 
 # Cloud-init disk for workers
@@ -43,7 +43,7 @@ resource "libvirt_cloudinit_disk" "worker_init" {
   count     = 2
   name      = "worker-${count.index + 1}-init.iso"
   pool      = "default"
-  user_data = templatefile("${path.module}/cloud-init.yaml", { hostname = "worker-${count.index + 1}" })
+  user_data = templatefile("${path.module}/cloud-init.yaml", { hostname = "worker-${count.index + 1}", ssh_public_key = trimspace(file(pathexpand(var.ssh_public_key_path))) })
 }
 
 # Volume do control plane
@@ -133,4 +133,10 @@ resource "local_file" "ansible_inventory" {
     worker_ips      = [for w in libvirt_domain.worker : w.network_interface[0].addresses[0]]
   })
   filename = "${path.module}/../ansible/inventory.ini"
+}
+
+variable "ssh_public_key_path" {
+  description = "Chave pública SSH injetada nas VMs pelo cloud-init"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
 }
